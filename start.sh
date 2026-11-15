@@ -4,7 +4,7 @@
 echo "🚀 Starting LearningSteps API..."
 
 # Check if we're in the right directory
-if [ ! -f "api/main.py" ]; then
+if [ ! -f "app/main.py" ]; then
     echo "❌ Please run this script from the project root directory"
     exit 1
 fi
@@ -21,7 +21,7 @@ source venv/bin/activate
 
 # Install dependencies
 echo "📥 Installing dependencies..."
-pip install -r api/requirements.txt
+pip install -r app/requirements.txt
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then
@@ -31,4 +31,4 @@ fi
 # Start the API
 echo "🎉 Starting FastAPI server..."
 echo "📖 API docs will be available at: http://localhost:8000/docs"
-cd api && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd app && uvicorn main:app --reload --host 0.0.0.0 --port 8000
