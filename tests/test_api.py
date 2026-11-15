@@ -7,33 +7,55 @@ import pytest
 from fastapi.testclient import TestClient
 from main import app
 from routers.journal_router import get_entry_service
+from services.entry_service import EntryService
 
 
-class FakeEntryService:
-    """Stands in for the real database: keeps entries in a Python dictionary."""
+class FakeDB:
+    """Stands in for PostgreSQL: keeps rows in a Python dictionary.
+
+    It behaves like the real database class: an update replaces the stored
+    data completely, exactly as the SQL UPDATE in postgres_repository.py does.
+    """
 
     def __init__(self):
-        self.entries = {}
+        self.rows = {}
+
+    def _clean(self, data):
+        return {
+            "id": data["id"],
+            "work": data.get("work", ""),
+            "struggle": data.get("struggle", ""),
+            "intention": data.get("intention", ""),
+            "created_at": data.get("created_at"),
+            "updated_at": data.get("updated_at"),
+        }
 
     async def create_entry(self, entry_data):
-        self.entries[entry_data["id"]] = entry_data
-        return entry_data
+        self.rows[entry_data["id"]] = dict(entry_data)
+        return self._clean(entry_data)
 
     async def get_all_entries(self):
-        return list(self.entries.values())
+        return [self._clean(row) for row in self.rows.values()]
 
     async def get_entry(self, entry_id):
-        return self.entries.get(entry_id)
+        row = self.rows.get(entry_id)
+        return self._clean(row) if row else None
+
+    async def update_entry(self, entry_id, updated_data):
+        self.rows[entry_id] = dict(updated_data)
 
     async def delete_entry(self, entry_id):
-        self.entries.pop(entry_id, None)
+        self.rows.pop(entry_id, None)
+
+    async def delete_all_entries(self):
+        self.rows.clear()
 
 
 @pytest.fixture
 def client():
-    """A test 'browser' that talks to the app, with the fake database plugged in."""
-    fake = FakeEntryService()
-    app.dependency_overrides[get_entry_service] = lambda: fake
+    """A test 'browser' for the app: the real code runs, only the database is fake."""
+    fake_db = FakeDB()
+    app.dependency_overrides[get_entry_service] = lambda: EntryService(fake_db)
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -43,6 +65,13 @@ VALID_ENTRY = {
     "struggle": "Multi-stage builds",
     "intention": "Write the Dockerfile",
 }
+
+
+def create_entry(client):
+    """Helper: create one entry and return its id."""
+    response = client.post("/entries", json=VALID_ENTRY)
+    assert response.status_code == 200
+    return response.json()["entry"]["id"]
 
 
 def test_health_returns_ok(client):
@@ -59,10 +88,7 @@ def test_metrics_counts_requests(client):
 
 
 def test_create_and_read_entry(client):
-    created = client.post("/entries", json=VALID_ENTRY)
-    assert created.status_code == 200
-    entry_id = created.json()["entry"]["id"]
-
+    entry_id = create_entry(client)
     read = client.get(f"/entries/{entry_id}")
     assert read.status_code == 200
     assert read.json()["work"] == "Learned Docker"
@@ -75,4 +101,19 @@ def test_unknown_entry_returns_404(client):
 
 def test_too_short_text_is_rejected(client):
     response = client.post("/entries", json={**VALID_ENTRY, "work": "ab"})
+    assert response.status_code == 422
+
+
+def test_patch_keeps_fields_that_were_not_sent(client):
+    entry_id = create_entry(client)
+    client.patch(f"/entries/{entry_id}", json={"work": "Learned Kubernetes"})
+    entry = client.get(f"/entries/{entry_id}").json()
+    assert entry["work"] == "Learned Kubernetes"
+    assert entry["struggle"] == "Multi-stage builds"
+    assert entry["intention"] == "Write the Dockerfile"
+
+
+def test_patch_rejects_too_short_text(client):
+    entry_id = create_entry(client)
+    response = client.patch(f"/entries/{entry_id}", json={"work": "ab"})
     assert response.status_code == 422

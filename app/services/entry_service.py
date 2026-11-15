@@ -49,7 +49,8 @@ class EntryService:
             return None
 
         updated_data = {
-            **updated_data,
+            **existing_entry,   # start from everything the entry already has
+            **updated_data,     # then overwrite only the fields that were sent
             "id": entry_id,
             "updated_at": datetime.now(timezone.utc),
             "created_at": existing_entry.get("created_at")

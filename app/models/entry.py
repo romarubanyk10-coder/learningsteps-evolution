@@ -89,3 +89,18 @@ class Entry(BaseModel):
             datetime: lambda v: v.isoformat()
         }
     }
+class EntryUpdate(BaseModel):
+    """Model for a partial update (PATCH): every field is optional, but each field that is sent is checked."""
+    work: Optional[str] = Field(default=None, max_length=256)
+    struggle: Optional[str] = Field(default=None, max_length=256)
+    intention: Optional[str] = Field(default=None, max_length=256)
+
+    @field_validator('work', 'struggle', 'intention')
+    @classmethod
+    def validate_text(cls, v: Optional[str]) -> Optional[str]:
+        """Same rule as for new entries: at least 3 characters, no empty text."""
+        if v is None:
+            return v
+        if len(v.strip()) < 3:
+            raise ValueError('Field must be at least 3 characters long')
+        return v.strip()

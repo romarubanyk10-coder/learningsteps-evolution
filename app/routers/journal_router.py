@@ -3,7 +3,7 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, HTTPException, Request, Depends
 from repositories.postgres_repository import PostgresDB
 from services.entry_service import EntryService
-from models.entry import Entry, EntryCreate
+from models.entry import Entry, EntryCreate, EntryUpdate
 
 
 router = APIRouter()
@@ -58,9 +58,12 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
     return result
 
 @router.patch("/entries/{entry_id}")
-async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
-    """Update a journal entry"""
-    result = await entry_service.update_entry(entry_id, entry_update)
+async def update_entry(entry_id: str, entry_update: EntryUpdate, entry_service: EntryService = Depends(get_entry_service)):
+    """Update a journal entry: only the fields that are sent change."""
+    changes = entry_update.model_dump(exclude_none=True)
+    if not changes:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+    result = await entry_service.update_entry(entry_id, changes)
     if not result:
     
         raise HTTPException(status_code=404, detail="Entry not found")
