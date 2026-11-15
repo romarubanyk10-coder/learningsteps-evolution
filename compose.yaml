@@ -1,0 +1,30 @@
+# Local test setup: the API and PostgreSQL 16 in two containers
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: learningsteps
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: learning_journal
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./database_setup.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U learningsteps -d learning_journal"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    image: learningsteps-api:dev
+    environment:
+      DATABASE_URL: postgresql://learningsteps:${POSTGRES_PASSWORD}@db:5432/learning_journal
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
