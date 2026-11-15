@@ -18,7 +18,8 @@ WORKDIR /app
 
 # 1) Libraries first: this layer is reused while requirements.txt does not change
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir --requirement requirements.txt
+RUN pip install --no-cache-dir --requirement requirements.txt \
+  && pip uninstall --yes pip
 
 # 2) Then the application code
 COPY app/ .
