@@ -1,0 +1,4 @@
+# Linter settings for ruff: https://docs.astral.sh/ruff/
+[lint]
+select = ["E", "F"]   # E = basic style errors, F = real bugs (unused imports, undefined names)
+ignore = ["E501"]     # long lines from the original code are allowed
