@@ -6,3 +6,7 @@ output "vnet_name" {
   description = "Name of the project virtual network"
   value       = azurerm_virtual_network.main.name
 }
+output "acr_login_server" {
+  description = "Address of the container registry"
+  value       = azurerm_container_registry.main.login_server
+}
