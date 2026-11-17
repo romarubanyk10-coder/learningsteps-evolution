@@ -10,6 +10,10 @@ resource "azurerm_virtual_network" "main" {
   resource_group_name = azurerm_resource_group.main.name
   address_space       = [local.vnet_cidr]
   tags                = var.tags
+
+  lifecycle {
+    ignore_changes = [tags["created-on"]]
+  }
 }
 
 resource "azurerm_subnet" "aks" {
@@ -17,6 +21,10 @@ resource "azurerm_subnet" "aks" {
   resource_group_name  = azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = [local.aks_subnet_cidr]
+
+  service_endpoint {
+    service = "Microsoft.KeyVault"
+  }
 }
 
 resource "azurerm_subnet" "db" {
@@ -82,6 +90,10 @@ resource "azurerm_network_security_group" "db" {
     source_address_prefix      = "VirtualNetwork"
     destination_address_prefix = "*"
   }
+
+  lifecycle {
+    ignore_changes = [tags["created-on"]]
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "db" {
@@ -93,6 +105,10 @@ resource "azurerm_private_dns_zone" "postgres" {
   name                = "${var.project}.private.postgres.database.azure.com"
   resource_group_name = azurerm_resource_group.main.name
   tags                = var.tags
+
+  lifecycle {
+    ignore_changes = [tags["created-on"]]
+  }
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "postgres" {
@@ -101,4 +117,8 @@ resource "azurerm_private_dns_zone_virtual_network_link" "postgres" {
   virtual_network_id   = azurerm_virtual_network.main.id
   registration_enabled = false
   tags                 = var.tags
+
+  lifecycle {
+    ignore_changes = [tags["created-on"]]
+  }
 }

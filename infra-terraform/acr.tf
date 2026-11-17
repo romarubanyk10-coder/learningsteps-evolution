@@ -5,4 +5,8 @@ resource "azurerm_container_registry" "main" {
   sku                 = "Basic"
   admin_enabled       = false
   tags                = var.tags
+
+  lifecycle {
+    ignore_changes = [tags["created-on"]]
+  }
 }
