@@ -49,6 +49,7 @@ resource "azurerm_key_vault_secret" "postgres_admin_password" {
   # (SkuNotAvailable). The retry generates a new password, so the secret must be rewritten too.
   value_wo_version = 2
   content_type     = "password"
+  expiration_date  = "2027-03-31T00:00:00Z"
 
   # Write the secret only after the server exists, so a failed server create never leaves
   # a password in Key Vault that the server does not have.
@@ -56,4 +57,22 @@ resource "azurerm_key_vault_secret" "postgres_admin_password" {
     azurerm_role_assignment.me_kv_secrets_officer,
     azurerm_postgresql_flexible_server.main,
   ]
+}
+
+resource "azurerm_postgresql_flexible_server_configuration" "log_connections" {
+  name      = "log_connections"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "on"
+}
+
+resource "azurerm_postgresql_flexible_server_configuration" "log_checkpoints" {
+  name      = "log_checkpoints"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "on"
+}
+
+resource "azurerm_postgresql_flexible_server_configuration" "connection_throttling" {
+  name      = "connection_throttle.enable"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "on"
 }

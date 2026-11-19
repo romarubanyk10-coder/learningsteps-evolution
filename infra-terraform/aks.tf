@@ -1,3 +1,15 @@
+# Accepted risks (Trivy / AVD), reviewed 2026-11-19. Each is documented in the report.
+# AZU-0041 + AZU-0065: the API server stays public because GitHub-hosted runners deploy from
+#   changing IP ranges and the lab forbids service principals (no self-hosted runner or VPN).
+#   Access still needs a cluster credential and Kubernetes RBAC.
+# AZU-0040: no OMS agent / Log Analytics (extra cost); metrics come from Prometheus on Day 5.
+# AZU-0066: no Azure Policy add-on; pods are restricted with built-in Pod Security admission instead.
+# AZU-0067: OS disk uses Azure platform-managed encryption at rest; customer-managed keys are out of scope.
+#trivy:ignore:AVD-AZU-0041
+#trivy:ignore:AVD-AZU-0065
+#trivy:ignore:AVD-AZU-0040
+#trivy:ignore:AVD-AZU-0066
+#trivy:ignore:AVD-AZU-0067
 resource "azurerm_kubernetes_cluster" "main" {
   name                = "aks-${var.project}"
   location            = azurerm_resource_group.main.location

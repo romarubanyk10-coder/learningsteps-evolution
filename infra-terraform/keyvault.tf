@@ -1,5 +1,8 @@
 data "azurerm_client_config" "current" {}
 
+# AZU-0016 accepted: purge protection would block re-creating a vault with the same name for
+# 7 days, which breaks the destroy -> apply recovery test. Soft delete (7 days) stays on.
+#trivy:ignore:AVD-AZU-0016
 resource "azurerm_key_vault" "main" {
   name                          = "kv-${var.project}-evo"
   location                      = azurerm_resource_group.main.location
