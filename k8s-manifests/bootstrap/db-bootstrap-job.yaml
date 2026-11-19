@@ -1,0 +1,66 @@
+# One-time Job: creates the app role and the table inside the private database.
+# It runs inside the cluster because only snet-aks can reach the database.
+# Passwords come from the temporary Secret "pg-bootstrap"; the namespace is deleted afterwards.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-bootstrap
+  namespace: db-bootstrap
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: psql
+          image: postgres:16
+          envFrom:
+            - secretRef:
+                name: pg-bootstrap
+          env:
+            - name: DB_HOST
+              value: psql-learningsteps-evo.postgres.database.azure.com
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "== 1. Bootstrap as admin"
+              psql "host=$DB_HOST port=5432 dbname=learning_journal user=psqladmin sslmode=require" \
+                -v ON_ERROR_STOP=1 -v app_password="$APP_PASSWORD" -f /sql/db-bootstrap.sql
+              echo "== 2. App user can read and write rows"
+              PGPASSWORD="$APP_PASSWORD" psql "host=$DB_HOST port=5432 dbname=learning_journal user=learningsteps_app sslmode=require" \
+                -v ON_ERROR_STOP=1 -c "SELECT current_user, count(*) AS entries FROM entries;"
+              echo "== 3. App user must NOT be able to create tables (expect permission denied)"
+              if PGPASSWORD="$APP_PASSWORD" psql "host=$DB_HOST port=5432 dbname=learning_journal user=learningsteps_app sslmode=require" \
+                -v ON_ERROR_STOP=1 -c "CREATE TABLE should_fail (x int);"; then
+                echo "UNEXPECTED: app user could create a table"; exit 1
+              else
+                echo "OK: permission denied, as intended"
+              fi
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+      volumes:
+        - name: sql
+          configMap:
+            name: db-bootstrap-sql

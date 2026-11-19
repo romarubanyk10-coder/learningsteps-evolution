@@ -76,3 +76,35 @@ resource "azurerm_postgresql_flexible_server_configuration" "connection_throttli
   server_id = azurerm_postgresql_flexible_server.main.id
   value     = "on"
 }
+
+# --- Application database user (least privilege) ---------------------------------------
+# The app does not use the admin account. Terraform generates the app password once and
+# stores it in Key Vault twice: alone (for the one-time DB bootstrap job that creates the
+# role) and inside the full connection string that the app reads. Both are write-only.
+
+ephemeral "random_password" "postgres_app" {
+  length  = 32
+  special = false
+}
+
+resource "azurerm_key_vault_secret" "postgres_app_password" {
+  name             = "postgres-app-password"
+  key_vault_id     = azurerm_key_vault.main.id
+  value_wo         = ephemeral.random_password.postgres_app.result
+  value_wo_version = 1
+  content_type     = "password"
+  expiration_date  = "2027-03-31T00:00:00Z"
+
+  depends_on = [azurerm_role_assignment.me_kv_secrets_officer]
+}
+
+resource "azurerm_key_vault_secret" "database_url" {
+  name             = "database-url"
+  key_vault_id     = azurerm_key_vault.main.id
+  value_wo         = "postgresql://learningsteps_app:${ephemeral.random_password.postgres_app.result}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/learning_journal?sslmode=require"
+  value_wo_version = 1
+  content_type     = "connection-string"
+  expiration_date  = "2027-03-31T00:00:00Z"
+
+  depends_on = [azurerm_role_assignment.me_kv_secrets_officer]
+}
