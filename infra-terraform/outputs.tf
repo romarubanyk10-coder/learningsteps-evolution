@@ -30,3 +30,8 @@ output "key_vault_name" {
   description = "Name of the Key Vault"
   value       = azurerm_key_vault.main.name
 }
+
+output "postgres_fqdn" {
+  description = "Private DNS name of the PostgreSQL server"
+  value       = azurerm_postgresql_flexible_server.main.fqdn
+}

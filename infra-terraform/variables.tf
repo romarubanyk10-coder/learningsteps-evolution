@@ -35,3 +35,14 @@ variable "kv_allowed_ips" {
   type        = list(string)
   default     = []
 }
+variable "postgres_sku" {
+  description = "PostgreSQL Flexible Server size (tier_family_size)"
+  type        = string
+  default     = "B_Standard_B1ms"
+}
+
+variable "postgres_zone" {
+  description = "Availability zone for PostgreSQL; pinned because the automatic choice failed with SkuNotAvailable"
+  type        = string
+  default     = "1"
+}
