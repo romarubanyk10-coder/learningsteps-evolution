@@ -1,0 +1,13 @@
+# The app's own "apartment" in the cluster.
+# Pod Security "restricted": Kubernetes refuses any pod that runs as root, can gain extra
+# privileges, keeps Linux capabilities or lacks a seccomp profile.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: learningsteps
+  labels:
+    app.kubernetes.io/part-of: learningsteps
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

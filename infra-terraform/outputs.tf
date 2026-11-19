@@ -45,3 +45,12 @@ output "foundry_deployment_name" {
   description = "Name of the model deployment the app calls"
   value       = azurerm_cognitive_deployment.gpt5mini.name
 }
+output "app_identity_client_id" {
+  description = "Client ID of the app pods' managed identity (not a secret)"
+  value       = azurerm_user_assigned_identity.app.client_id
+}
+
+output "tenant_id" {
+  description = "Entra ID tenant (not a secret)"
+  value       = data.azurerm_client_config.current.tenant_id
+}

@@ -1,0 +1,45 @@
+# Temporary test: can a pod with our ServiceAccount fetch the secret from Key Vault?
+# It prints only file names and sizes, never the value. Delete it after the test.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kv-csi-test
+  namespace: learningsteps
+  labels:
+    azure.workload.identity/use: "true"
+spec:
+  serviceAccountName: learningsteps-api
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: test
+      image: busybox:1.37
+      command: ["sh", "-c", "ls -l /mnt/secrets && echo \"database-url length: $(wc -c < /mnt/secrets/database-url) bytes\" && sleep 30"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 50m
+          memory: 32Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: kv
+          mountPath: /mnt/secrets
+          readOnly: true
+  volumes:
+    - name: kv
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: learningsteps-kv
