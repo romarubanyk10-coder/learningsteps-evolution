@@ -35,3 +35,13 @@ output "postgres_fqdn" {
   description = "Private DNS name of the PostgreSQL server"
   value       = azurerm_postgresql_flexible_server.main.fqdn
 }
+
+output "foundry_endpoint" {
+  description = "Endpoint of the AI Services (Foundry) account"
+  value       = azurerm_cognitive_account.foundry.endpoint
+}
+
+output "foundry_deployment_name" {
+  description = "Name of the model deployment the app calls"
+  value       = azurerm_cognitive_deployment.gpt5mini.name
+}

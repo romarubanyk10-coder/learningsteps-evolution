@@ -25,6 +25,10 @@ resource "azurerm_subnet" "aks" {
   service_endpoint {
     service = "Microsoft.KeyVault"
   }
+
+  service_endpoint {
+    service = "Microsoft.CognitiveServices"
+  }
 }
 
 resource "azurerm_subnet" "db" {
