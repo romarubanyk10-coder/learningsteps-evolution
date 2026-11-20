@@ -1,0 +1,17 @@
+# The "service window": one public IP on the Azure load balancer, port 80,
+# forwarded to port 8000 of whichever pod is ready.
+apiVersion: v1
+kind: Service
+metadata:
+  name: learningsteps-api
+  namespace: learningsteps
+  labels:
+    app: learningsteps-api
+spec:
+  type: LoadBalancer
+  selector:
+    app: learningsteps-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
