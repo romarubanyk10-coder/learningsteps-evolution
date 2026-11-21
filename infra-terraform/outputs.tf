@@ -54,3 +54,8 @@ output "tenant_id" {
   description = "Entra ID tenant (not a secret)"
   value       = data.azurerm_client_config.current.tenant_id
 }
+
+output "acr_ci_token_name" {
+  description = "Name of the repository-scoped ACR token used by GitHub Actions"
+  value       = azurerm_container_registry_token.ci_push.name
+}
