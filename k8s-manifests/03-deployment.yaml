@@ -1,5 +1,6 @@
 # The app itself: 2 identical pods ("employees") on the post learningsteps-api.
 # Image from our ACR; DATABASE_URL arrives from Key Vault via the CSI courier.
+# The AI summary signs in to Foundry with Workload Identity: no API key anywhere.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,7 +34,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: acrlearningstepsevo.azurecr.io/learningsteps-api:v1
+          image: acrlearningstepsevo.azurecr.io/learningsteps-api:v2
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -44,6 +45,12 @@ spec:
                 secretKeyRef:
                   name: learningsteps-db
                   key: DATABASE_URL
+            # Not secrets: the address of the model and the deployment name.
+            # Access is decided by the pod's Entra ID token and its RBAC role.
+            - name: AZURE_OPENAI_BASE_URL
+              value: "https://ais-learningsteps-evo.openai.azure.com/openai/v1/"
+            - name: AZURE_OPENAI_DEPLOYMENT
+              value: "gpt-5-mini"
           resources:
             requests:
               cpu: 100m
