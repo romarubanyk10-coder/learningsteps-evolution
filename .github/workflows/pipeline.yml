@@ -1,5 +1,9 @@
 # CI/CD pipeline: every push to main is checked, scanned, built and deployed.
-# Stage 1 (this version): lint and tests. Later stages are added step by step.
+# Stages so far: 1) lint and tests, 2) security scans. Build and deploy come next.
+#
+# Every third-party action is pinned to a full commit SHA (its "fingerprint"),
+# not to a tag like @v7: a tag can be moved to malicious code, a SHA cannot
+# (see the tj-actions/changed-files incident, March 2025).
 name: CI/CD
 
 on:
@@ -12,7 +16,7 @@ on:
 permissions:
   contents: read
 
-# Never run two deployments of the same branch at the same time.
+# Never run two pipelines for the same branch at the same time.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -24,12 +28,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out the code
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
           cache: pip
@@ -43,3 +47,38 @@ jobs:
 
       - name: Test (pytest)
         run: python -m pytest
+
+  security-scan:
+    name: Security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code (full history for the secret scan)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Secret scan (trufflehog)
+        uses: trufflesecurity/trufflehog@d232362a64a09a9e7d58267b8f5acef00ae90e23 # v3.100.0
+        with:
+          extra_args: --results=verified,unknown
+
+      - name: Dependency scan (trivy fs)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Configuration scan (trivy config)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          trivyignores: .trivyignore.yaml
