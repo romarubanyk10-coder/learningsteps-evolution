@@ -34,7 +34,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: acrlearningstepsevo.azurecr.io/learningsteps-api:v2
+          image: acrlearningstepsevo.azurecr.io/learningsteps-api:v3
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

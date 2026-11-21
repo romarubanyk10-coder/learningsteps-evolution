@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LearningSteps — My notes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>LearningSteps</h1>
+    <p class="hint">Your learning journal. The summary is written by an AI model that only our server can reach.</p>
+
+    <section>
+      <h2>Your notes <span id="entry-count"></span></h2>
+      <ul id="entries"></ul>
+    </section>
+
+    <section>
+      <button id="summary-button" type="button">Summarize my notes</button>
+      <p id="status" class="hint" role="status"></p>
+      <div id="summary" class="summary" hidden></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
