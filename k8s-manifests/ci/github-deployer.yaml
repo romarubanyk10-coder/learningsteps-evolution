@@ -1,0 +1,43 @@
+# Access for the GitHub Actions pipeline INSIDE the cluster.
+# The robot gets its own "employee" (ServiceAccount) with a very small job
+# description (Role): it may look at the API Deployment and change its image.
+# It may NOT read Secrets, exec into pods, delete anything or touch other namespaces.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-deployer
+  namespace: learningsteps
+automountServiceAccountToken: false  # no pod runs as this account
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-deployer
+  namespace: learningsteps
+rules:
+  # Change the image of exactly one Deployment (kubectl set image).
+  # Accepted risk KSV-0048 (see .trivyignore.yaml): deploying REQUIRES patch on the
+  # Deployment. Limited to one Deployment by name, one namespace, Pod Security
+  # 'restricted' blocks root/privileged pods, the token expires after 30 days.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["learningsteps-api"]
+    verbs: ["get", "patch"]
+  # Watch the rollout until the new pods are ready (kubectl rollout status)
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-deployer
+  namespace: learningsteps
+subjects:
+  - kind: ServiceAccount
+    name: github-deployer
+    namespace: learningsteps
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-deployer

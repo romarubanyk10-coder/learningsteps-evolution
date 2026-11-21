@@ -1,0 +1,13 @@
+# Accepted Trivy findings. Each entry is limited to one file and explains WHY.
+# Usage: trivy config --ignorefile .trivyignore.yaml <path>
+misconfigurations:
+  - id: KSV-0048
+    paths:
+      - "k8s-manifests/ci/github-deployer.yaml"
+      - "github-deployer.yaml"
+    statement: >-
+      The CI deployer must patch the Deployment to roll out a new image; this is the
+      purpose of the role. Mitigations: resourceNames limits it to learningsteps-api,
+      the Role is namespaced, Pod Security 'restricted' blocks privileged/root pods,
+      the token expires after 30 days and lives only in GitHub Secrets.
+      Remaining risk (Known Issue): a stolen token could deploy a foreign image.
