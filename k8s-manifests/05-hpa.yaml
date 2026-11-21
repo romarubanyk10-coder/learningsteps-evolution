@@ -1,0 +1,25 @@
+# Autoscaling: Kubernetes adds pods when the average CPU of the API pods is high
+# and removes them again when it is low. CPU % is measured against the pod's
+# CPU request (100m), so 70% = 70 millicores on average per pod.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: learningsteps-api
+  namespace: learningsteps
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: learningsteps-api
+  minReplicas: 2   # never fewer than 2: one pod may fail, the app stays up
+  maxReplicas: 4   # cost cap: our single node has room for about 4 API pods
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 120  # wait 2 minutes of low load before removing pods
