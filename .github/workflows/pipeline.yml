@@ -137,3 +137,40 @@ jobs:
         env:
           REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}
         run: docker logout "$REGISTRY"
+
+  deploy:
+    name: Deploy to AKS
+    # Only after the image was built, scanned and pushed successfully.
+    needs: build-and-push
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Write the deployer kubeconfig (from secret, owner-only file)
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/kube"
+          printf '%s' "$KUBE_CONFIG" > "$RUNNER_TEMP/kube/config"
+          echo "KUBECONFIG=$RUNNER_TEMP/kube/config" >> "$GITHUB_ENV"
+
+      - name: Roll out the new image
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: kubectl set image deployment/learningsteps-api api="$IMAGE" --namespace learningsteps
+
+      - name: Wait until all pods run the new image
+        run: kubectl rollout status deployment/learningsteps-api --namespace learningsteps --timeout=180s
+
+      - name: Show the image that is now running
+        run: kubectl get deployment learningsteps-api --namespace learningsteps --output jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+
+      - name: Smoke test (/health through the public address)
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-all-errors "$APP_URL/health"
+
+      - name: Remove the kubeconfig
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/kube"
