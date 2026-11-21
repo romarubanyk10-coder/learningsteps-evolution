@@ -82,3 +82,58 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: "1"
           trivyignores: .trivyignore.yaml
+
+  build-and-push:
+    name: Build, scan and push image
+    # Runs only after BOTH checks are green, and only for a real push to main
+    # (a pull request is checked, but never builds or deploys anything).
+    needs: [lint-and-test, security-scan]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      image: ${{ steps.name.outputs.image }}
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Choose the image name (tag = short commit SHA)
+        id: name
+        env:
+          REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}
+        run: echo "image=${REGISTRY}/learningsteps-api:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        env:
+          IMAGE: ${{ steps.name.outputs.image }}
+        run: docker build --platform linux/amd64 --tag "$IMAGE" .
+
+      - name: Scan image (trivy, stop on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ steps.name.outputs.image }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Log in to ACR (repository-scoped token)
+        env:
+          REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}
+          USERNAME: ${{ vars.ACR_TOKEN_USERNAME }}
+          PASSWORD: ${{ secrets.ACR_TOKEN_PASSWORD }}
+        run: echo "$PASSWORD" | docker login "$REGISTRY" --username "$USERNAME" --password-stdin
+
+      - name: Push image
+        env:
+          IMAGE: ${{ steps.name.outputs.image }}
+        run: docker push "$IMAGE"
+
+      - name: Log out of ACR
+        if: always()
+        env:
+          REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}
+        run: docker logout "$REGISTRY"
