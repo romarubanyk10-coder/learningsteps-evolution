@@ -6,3 +6,5 @@ sqlalchemy
 psycopg2-binary
 asyncpg
 prometheus-client
+openai>=1.106
+azure-identity
