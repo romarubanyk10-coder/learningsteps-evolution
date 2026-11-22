@@ -1,0 +1,17 @@
+# Tells Prometheus: "every 15 s, read /metrics from every API pod".
+# It finds the pods by their label app=learningsteps-api in the namespace learningsteps.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: learningsteps-api
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames: ["learningsteps"]
+  selector:
+    matchLabels:
+      app: learningsteps-api
+  podMetricsEndpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

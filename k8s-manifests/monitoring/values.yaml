@@ -1,0 +1,63 @@
+# Helm values for kube-prometheus-stack: a small monitoring setup for a 1-node learning cluster.
+# Only what we need: Prometheus (collects numbers), Grafana (draws graphs),
+# kube-state-metrics (tells how many pods are running). Everything else is off.
+
+alertmanager:
+  enabled: false          # no alert notifications in this project
+
+nodeExporter:
+  enabled: false          # would need host network and host PID access on the node
+
+defaultRules:
+  create: false           # alert rules make no sense without Alertmanager
+
+# AKS manages the control plane; Prometheus cannot (and need not) scrape it
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 15s
+    retention: 24h          # keep one day of data, stored in the pod (no paid disk)
+    # Pick up PodMonitors/ServiceMonitors from any namespace, not only Helm's own
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 400Mi
+      limits:
+        memory: 1Gi
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+grafana:
+  defaultDashboardsEnabled: false   # we ship our own dashboard (ConfigMap with label grafana_dashboard)
+  service:
+    type: ClusterIP                 # never public: opened only through kubectl port-forward
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi

@@ -1,0 +1,12 @@
+# Separate "apartment" for monitoring tools (Prometheus, Grafana).
+# Pod Security "baseline" is enforced (no privileged pods, no host access);
+# "restricted" is reported as a warning, because some third-party pods do not meet it fully.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
