@@ -13,5 +13,9 @@ spec:
       app: learningsteps-api
   podMetricsEndpoints:
     - port: http
+      # Our metrics carry their own label "endpoint" (the API route, e.g. /entries).
+      # Prometheus also adds a target label "endpoint" (the port name, here "http").
+      # honorLabels: keep OUR value when the names collide.
+      honorLabels: true
       path: /metrics
       interval: 15s
