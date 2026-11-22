@@ -8,3 +8,4 @@ asyncpg
 prometheus-client
 openai>=1.106
 azure-identity
+urllib3==1.26.4
