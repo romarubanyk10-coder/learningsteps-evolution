@@ -67,7 +67,7 @@ resource "azurerm_network_security_group" "db" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "5432"
-    source_address_prefix      = "*"
+    source_address_prefix      = local.aks_subnet_cidr
     destination_address_prefix = local.db_subnet_cidr
   }
 
