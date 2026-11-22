@@ -1,5 +1,5 @@
 # CI/CD pipeline: every push to main is checked, scanned, built and deployed.
-# Stages so far: 1) lint and tests, 2) security scans. Build and deploy come next.
+# Checks: lint/tests, security scans, Terraform. Then: build + image scan + push, deploy.
 #
 # Every third-party action is pinned to a full commit SHA (its "fingerprint"),
 # not to a tag like @v7: a tag can be moved to malicious code, a SHA cannot
@@ -9,8 +9,15 @@ name: CI/CD
 on:
   push:
     branches: [main]
+    # Screenshots and texts do not change the app: no checks, no deployment.
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
 
 # The robot's default rights on this repository: read the code, nothing else.
 permissions:
@@ -83,11 +90,36 @@ jobs:
           exit-code: "1"
           trivyignores: .trivyignore.yaml
 
+  terraform-check:
+    name: Terraform format and validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Terraform 1.17.0 (same version as on the admin's Mac)
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.17.0"
+          terraform_wrapper: false
+
+      - name: Format check (terraform fmt)
+        run: terraform -chdir=infra-terraform fmt -check -recursive
+
+      - name: Init without the remote state (no Azure access needed)
+        run: terraform -chdir=infra-terraform init -backend=false -input=false
+
+      - name: Validate (terraform validate)
+        run: terraform -chdir=infra-terraform validate
+
   build-and-push:
     name: Build, scan and push image
     # Runs only after BOTH checks are green, and only for a real push to main
     # (a pull request is checked, but never builds or deploys anything).
-    needs: [lint-and-test, security-scan]
+    needs: [lint-and-test, security-scan, terraform-check]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
