@@ -71,7 +71,11 @@ jobs:
       - name: Secret scan (trufflehog)
         uses: trufflesecurity/trufflehog@d232362a64a09a9e7d58267b8f5acef00ae90e23 # v3.100.0
         with:
-          extra_args: --results=verified,unknown
+          # .env-sample holds only the public defaults of the LOCAL docker-compose database
+          # (postgres/postgres on host "postgres"). A full-history scan (workflow_dispatch)
+          # reports it as "unknown" because the host cannot be reached. The file is excluded
+          # by exact path in .trufflehog-exclude.txt; every other file is still scanned.
+          extra_args: --results=verified,unknown --exclude-paths=.trufflehog-exclude.txt
 
       - name: Dependency scan (trivy fs)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
