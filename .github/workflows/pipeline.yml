@@ -18,6 +18,8 @@ on:
     paths-ignore:
       - "docs/**"
       - "**.md"
+  # Manual start button (Actions tab or `gh workflow run`), e.g. after Infrastructure Recovery
+  workflow_dispatch:
 
 # The robot's default rights on this repository: read the code, nothing else.
 permissions:
@@ -120,7 +122,7 @@ jobs:
     # Runs only after BOTH checks are green, and only for a real push to main
     # (a pull request is checked, but never builds or deploys anything).
     needs: [lint-and-test, security-scan, terraform-check]
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -174,7 +176,7 @@ jobs:
     name: Deploy to AKS
     # Only after the image was built, scanned and pushed successfully.
     needs: build-and-push
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
